@@ -2,13 +2,13 @@ import { loadStoredContent } from './storage.js';
 
 // --- AI Grouping Logic (Simulated/Hybrid) ---
 const DOMAIN_GROUPS = {
-    'youtube.com': 'Media & Entertainment',
-    'reddit.com': 'Social Forums',
-    'github.com': 'Code & Development',
-    'stackoverflow.com': 'Code & Development',
-    'linkedin.com': 'Professional Networking',
-    'wikipedia.org': 'Research & Reference',
-    'docs.google.com': 'Work Documents'
+    "Entertainment": ["YouTube - Trailer", "Netflix - Stranger Things"],
+    "Shopping": ["Amazon - Headphones", "Etsy - Handmade Art"],
+    "Social": ["Instagram - Feed", "Twitter - Notifications"],
+    "Food": ["UberEats - Pizza", "Yelp - Restaurants Nearby"],
+    "Productivity": ["Google Docs - Report", "Notion - Task Board"],
+    "Music": ["Spotify - Lofi Playlist", "SoundCloud - Remix"],
+    "Travel": ["Airbnb - NYC Stay", "Skyscanner - Flight Deals"]
 };
 
 /**
