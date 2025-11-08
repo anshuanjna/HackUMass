@@ -2,12 +2,19 @@
   "manifest_version": 3,
   "name": "TabSense",
   "version": "1.0",
-  "description": "Organize your browser tabs by meaning and mood. Uses AI to group tabs and track time spent by topic.",
-  "permissions": ["tabs", "storage"],
-  "host_permissions": ["<all_urls>"],
+  "description": "Organize your browser tabs by meaning and mood. Uses AI to group tabs and track time.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "tabGroups",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background/background.js",
-    "type": "module"
+    "type": "module" 
   },
   "content_scripts": [
     {
@@ -20,5 +27,5 @@
     "default_popup": "popup/popup.html",
     "default_title": "TabSense"
   },
-  "authors": "Rakshita Saroha, Pihul Nyati, Anshu Anjna, Prisha Babel"
+  "authors": ["RAKSHITA SAROHA", "ANSHU ANJNA", "PIHUL NYATI", "PRISHA BABEL"]
 }
