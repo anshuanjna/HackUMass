@@ -6,7 +6,7 @@ import { loadStoredContent } from './storage.js';
  * Core function to group all current tabs based on smart logic.
  */
 export async function groupAllTabs() {
-    const allTabs = await chrome.tabs.query({ url: ['http://*', 'https://*'] });
+    const allTabs = await chrome.tabs.query({ url: ['*://*/*'] });
     const tabsWithContent = await loadStoredContent(allTabs);
     const groups = new Map(); // Map<groupName, tabIds[]>
 

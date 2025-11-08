@@ -1,16 +1,14 @@
-// From uploaded snippet image_45ea9f.png
-// We'll update the logic slightly for better structure and to use modern async/await.
+/// --- Storage Functions ---
 
 // Save extracted text and timestamp for a tab's content
 export async function saveTabContent(tabId, content) {
-    // The key is the tabId, the value is the content object {text, timestamp}
+    // Use modern promise-based API directly
     await chrome.storage.local.set({ [tabId]: content });
 }
 
 // Load stored text for a list of tabs
 export async function loadStoredContent(tabs) {
     const tabIds = tabs.map(t => String(t.id));
-    // Retrieve only the specific keys (tab IDs) we need
     const stored = await chrome.storage.local.get(tabIds); 
 
     return tabs.map(t => {
@@ -43,7 +41,7 @@ export async function updateTopicTime(groupName, durationMs) {
     await chrome.storage.local.set({ [TOPIC_TIMES_KEY]: topicTimes });
 }
 
-// Clear all topic times (for a 'reset' button, etc.)
+// Clear all topic times 
 export async function clearTopicTimes() {
     await chrome.storage.local.remove(TOPIC_TIMES_KEY);
 }
