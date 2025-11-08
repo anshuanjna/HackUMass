@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TabSense Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <h1>⚙️ TabSense Settings</h1>
+
+  <section>
+    <h2>Smart Behavior</h2>
+    <label><input type="checkbox" id="toggle-ai"> Enable AI Categorization</label><br>
+    <label><input type="checkbox" id="auto-close"> Auto-close inactive tabs after 1 hour</label>
+  </section>
+
+  <section>
+    <h2> Theme</h2>
+    <label><input type="checkbox" id="theme-switch"> Dark Mode</label>
+  </section>
+
+  <section>
+    <h2>View Mode</h2>
+    <label><input type="radio" name="view-mode" value="intent" checked> Intent View</label><br>
+    <label><input type="radio" name="view-mode" value="mood"> Mood View</label>
+  </section>
+
+  <section>
+    <h2>Privacy</h2>
+    <label><input type="checkbox" id="privacy-ai"> Don’t send URLs to AI</label>
+  </section>
+
+  <script src="settings.js"></script>
+</body>
+</html>

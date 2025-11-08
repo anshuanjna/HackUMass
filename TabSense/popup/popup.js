@@ -4,7 +4,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
 
-  // 🧩 Category → CSS class + emoji
+
+  // Category → CSS class + emoji
   const categoryStyles = {
     "Entertainment": { class: "entertainment", icon: "🎥" },
     "Shopping": { class: "shopping", icon: "🛍️" },
@@ -64,3 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
     chatInput.value = "";
   });
 });
+
+  document.getElementById("settings-btn").addEventListener("click", () => {
+    chrome.runtime.openOptionsPage();
+  });
