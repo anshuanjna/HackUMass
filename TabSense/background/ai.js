@@ -1,14 +1,22 @@
 import { loadStoredContent } from './storage.js';
 
 // --- AI Grouping Logic (Simulated/Hybrid) ---
+// This map assigns a strong category to common domains.
 const DOMAIN_GROUPS = {
-    "Entertainment": ["YouTube - Trailer", "Netflix - Stranger Things"],
-    "Shopping": ["Amazon - Headphones", "Etsy - Handmade Art"],
-    "Social": ["Instagram - Feed", "Twitter - Notifications"],
-    "Food": ["UberEats - Pizza", "Yelp - Restaurants Nearby"],
-    "Productivity": ["Google Docs - Report", "Notion - Task Board"],
-    "Music": ["Spotify - Lofi Playlist", "SoundCloud - Remix"],
-    "Travel": ["Airbnb - NYC Stay", "Skyscanner - Flight Deals"]
+    'youtube.com': 'Media & Entertainment',
+    'netflix.com': 'Media & Entertainment',
+    'amazon.com': 'Shopping & E-commerce',
+    'etsy.com': 'Shopping & E-commerce',
+    'instagram.com': 'Social Media',
+    'twitter.com': 'Social Media',
+    'reddit.com': 'Social Media',
+    'docs.google.com': 'Work Documents',
+    'notion.so': 'Productivity',
+    'github.com': 'Code & Development',
+    'stackoverflow.com': 'Code & Development',
+    'spotify.com': 'Music',
+    'airbnb.com': 'Travel & Booking',
+    'skyscanner.net': 'Travel & Booking'
 };
 
 /**
@@ -26,12 +34,12 @@ export function getGroupName(tab, contentText = "") {
         const title = tab.title.toLowerCase();
         const content = contentText.toLowerCase();
 
-        // 1. Domain Match
+        // 1. Domain Match: Check if the exact domain is in our list
         if (DOMAIN_GROUPS[domain]) {
             return DOMAIN_GROUPS[domain];
         }
 
-        // 2. Keyword/Content Match
+        // 2. Keyword/Content Match: Use extracted content for deeper grouping
         if (title.includes('tutorial') || content.includes('function') || content.includes('variable')) {
             return 'Code & Development';
         }
@@ -39,7 +47,7 @@ export function getGroupName(tab, contentText = "") {
             return 'Current Events';
         }
 
-        // 3. Fallback to Primary Domain
+        // 3. Fallback to Primary Domain: Use the root domain name (e.g., 'Google', 'Wikipedia')
         const parts = domain.split('.');
         if (parts.length >= 2) {
             const mainDomain = parts[parts.length - 2];

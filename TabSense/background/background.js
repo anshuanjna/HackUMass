@@ -22,6 +22,7 @@ async function handleTabActivated(activeInfo) {
       const tabData = tabActivity[tabId];
       if (now - tabData.startTime > IDLE_TIME_THRESHOLD_MS) {
         const duration = now - tabData.startTime;
+        // NOTE: updateTopicTime must be awaited
         await updateTopicTime(tabData.groupName, duration);
       }
       tabData.endTime = now; // Mark as ended
@@ -32,8 +33,8 @@ async function handleTabActivated(activeInfo) {
   try {
     const activeTab = await chrome.tabs.get(activeTabId);
     if (activeTab.url && activeTab.url.startsWith('http')) {
-        // Group name is used for analytics topic tracking
-        const groupName = getGroupName(activeTab); 
+        // CRITICAL CHANGE: getGroupName is now ASYNC (calls Gemini API), so it must be awaited here.
+        const groupName = await getGroupName(activeTab); 
 
         tabActivity[activeTabId] = {
             startTime: now,
@@ -47,13 +48,16 @@ async function handleTabActivated(activeInfo) {
 }
 
 // 2. Handle tab closing (ensure time is logged)
+// NOTE: This listener does NOT need to be async because it uses updateTopicTime 
+// which is a promise, and we don't need to wait for its result before finishing.
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   if (tabActivity[tabId] && tabActivity[tabId].endTime === 0) {
     const now = Date.now();
     const tabData = tabActivity[tabId];
     if (now - tabData.startTime > IDLE_TIME_THRESHOLD_MS) {
         const duration = now - tabData.startTime;
-        updateTopicTime(tabData.groupName, duration);
+        // updateTopicTime is called but not awaited (fire-and-forget is acceptable here)
+        updateTopicTime(tabData.groupName, duration); 
     }
     delete tabActivity[tabId];
   }
@@ -66,7 +70,7 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
 
 // Listener for messages from the popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    // Wrap async logic in an immediately-invoked async function
+    // Wrap async logic in an immediately-invoked async function (IIAFE)
     (async () => {
         // Message from Popup: Trigger Tab Grouping
         if (request.action === "GROUP_TABS") {
@@ -98,6 +102,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Message from Popup: Clear Analytics Data
         } else if (request.action === "CLEAR_TOPIC_TIMES") {
             try {
+                // Uses the standard Chrome storage removal API
                 await chrome.storage.local.remove('topicTimes');
                 sendResponse({ status: "Analytics cleared" });
             } catch (error) {
