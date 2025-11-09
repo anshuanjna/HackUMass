@@ -1,5 +1,5 @@
 // AI logic file for categorizing tabs via your local server
-const BATCH_SERVER_URL = "http://localhost:3000/batchCategorize";
+const BATCH_SERVER_URL = "https://hackumass-5h0i.onrender.com/batchCategorize";
 
 /**
  * Get group names for a whole list of tabs in a single API call.

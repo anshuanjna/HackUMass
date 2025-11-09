@@ -1,5 +1,5 @@
 // --- NO API KEY OR IMPORTS ---
-const CHAT_URL = "http://localhost:3000/chat";
+const CHAT_URL = "https://hackumass-5h0i.onrender.com/chat";
 
 document.addEventListener("DOMContentLoaded", () => {
   const tabGroupsContainer = document.getElementById("tab-groups");
@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
     } catch (err) {
-      console.error("❌ Error calling local server (Chat):", err);
+      console.error("❌ Error calling live server (Chat):", err);
       addChatMessage("assistant", "Sorry, I couldn't connect to the server.");
     }
   }
