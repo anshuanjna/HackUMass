@@ -35,4 +35,3 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Run a full grouping when the extension is first installed
 chrome.runtime.onInstalled.addListener(groupAllTabs);
-chrome.runtime.sendMessage({ action: "GROUP_TABS" });
