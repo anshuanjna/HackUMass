@@ -2,6 +2,8 @@ import { getGroupName } from './ai.js';
 import { getRandomColor } from './helpers.js';
 import { loadStoredContent } from './storage.js';
 
+// --- REMOVED THE SLEEP FUNCTION (No longer needed) ---
+
 /**
  * Core function to group all current tabs based on smart logic.
  */
@@ -14,9 +16,14 @@ export async function groupAllTabs() {
 
     // 1. Group tabs based on the AI/Smart logic
     for (const tabData of tabsWithContent) {
+        
+        // First, skip tabs we don't care about
         if (tabData.pinned || !tabData.url || tabData.url.startsWith('chrome://')) continue;
 
-        // CRITICAL CHANGE: Must AWAIT the asynchronous getGroupName function
+        // --- REMOVED THE AWAIT SLEEP() LINE ---
+        // Groq is fast enough that we don't need a delay
+        
+        // Await the asynchronous getGroupName function
         const groupName = await getGroupName(tabData, tabData.text);
         
         if (!groups.has(groupName)) {
