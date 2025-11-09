@@ -4,11 +4,8 @@ const CHAT_URL = "https://hackumass-5h0i.onrender.com/chat";
 document.addEventListener("DOMContentLoaded", () => {
   const tabGroupsContainer = document.getElementById("tab-groups");
   const searchBox = document.getElementById("searchBox");
-  const chatInput = document.getElementById("chatInput");
-  const sendBtn = document.getElementById("sendBtn");
   const settingsBtn = document.getElementById("settings-btn");
-  
-  let chatHistory = []; 
+
 
   const categoryStyles = {
     "Entertainment": { class: "entertainment", icon: "🎥" },
@@ -100,55 +97,12 @@ function getCategory(tab) {
     }
   }
 
-  // --- 2. CHATBOT FUNCTIONALITY ---
-  
-  function addChatMessage(role, text) {
-    const div = document.createElement("div");
-    div.classList.add("chat-message", `${role}-message`);
-    div.textContent = text;
-    tabGroupsContainer.prepend(div); 
-  }
-
-  async function handleSendChat() {
-    const userMessage = chatInput.value.trim();
-    if (!userMessage) return;
-
-    chatInput.value = ""; 
-    addChatMessage("user", userMessage);
-    chatHistory.push({ role: "user", content: userMessage });
-
-    try {
-      const response = await fetch(CHAT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: chatHistory })
-      });
-
-      const data = await response.json();
-
-      if (data.response) {
-        chatHistory.push(data.response);
-        addChatMessage("assistant", data.response.content);
-      } else {
-        addChatMessage("assistant", "Sorry, I had an error.");
-      }
-
-    } catch (err) {
-      console.error("❌ Error calling live server (Chat):", err);
-      addChatMessage("assistant", "Sorry, I couldn't connect to the server.");
-    }
-  }
-
   // --- 3. EVENT LISTENERS ---
   renderRealTabs();
   searchBox.addEventListener("input", (e) => {
     renderRealTabs(e.target.value);
   });
   
-  sendBtn.addEventListener("click", handleSendChat);
-  chatInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") handleSendChat();
-  });
 
   tabGroupsContainer.addEventListener("click", (e) => {
     const tabItem = e.target.closest('.tab-item');
