@@ -1,5 +1,6 @@
 body {
   width: 360px;
+  padding: 10px;
   font-family: "Inter", sans-serif;
   background: #f8f9fc;
   margin: 0;
@@ -61,6 +62,7 @@ main {
 }
 
 .tab-item {
+  height: 40px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 6px 8px;
@@ -68,6 +70,15 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-sizing: border-box;
+}
+
+.tab-item .favicon {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    object-fit: cover;
+    margin-right: 8px;
 }
 
 .close-btn {

@@ -21,6 +21,29 @@ document.addEventListener("DOMContentLoaded", () => {
     "Misc": { class: "productivity", icon: "📎" }
   };
 
+  // Detects category based on tab title or URL
+function getCategory(tab) {
+  const title = tab.title.toLowerCase();
+  const url = tab.url.toLowerCase();
+
+  if (url.includes("youtube") || url.includes("netflix") || title.includes("entertain"))
+    return "Entertainment";
+  if (url.includes("spotify") || url.includes("soundcloud"))
+    return "Music";
+  if (url.includes("instagram") || url.includes("reddit") || url.includes("x.com") || url.includes("twitter"))
+    return "Social";
+  if (url.includes("amazon") || url.includes("ebay") || url.includes("etsy"))
+    return "Shopping";
+  if (url.includes("ubereats") || url.includes("doordash") || url.includes("zomato"))
+    return "Food";
+  if (url.includes("notion") || url.includes("google") || url.includes("docs") || url.includes("calendar"))
+    return "Productivity";
+  if (url.includes("tripadvisor") || url.includes("expedia") || url.includes("airbnb"))
+    return "Travel";
+
+  return "Misc";
+}
+
   // --- 1. RENDER THE REAL TABS ---
   async function renderRealTabs(query = "") {
     tabGroupsContainer.querySelectorAll('.chat-message').forEach(el => el.remove());
@@ -40,7 +63,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const tabs = tabsByGroupId[groupId];
       try {
         const groupInfo = await chrome.tabGroups.get(parseInt(groupId));
-        const groupName = groupInfo.title || "Misc";
+        const detectedCategory = getCategory(tabs[0]);
+        const groupName = groupInfo.title || detectedCategory;
+
 
         const queryLower = query.toLowerCase();
         const matchingTabs = tabs.filter(t => 
