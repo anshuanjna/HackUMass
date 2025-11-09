@@ -22,14 +22,14 @@ export async function getGroupName(tabData, text = "") {
     const data = await response.json();
 
     if (data.category) {
-      console.log(`🔮 Gemini grouped "${tabData.title}" → ${data.category}`);
+      console.log(`🔮 Groq grouped "${tabData.title}" → ${data.category}`);
       return data.category;
     } else {
       console.warn("⚠️ No category returned, defaulting to Misc");
       return "Misc";
     }
   } catch (err) {
-    console.error("❌ Error calling Gemini server:", err);
+    console.error("❌ Error calling Groq server:", err);
     return "Misc";
   }
 }
