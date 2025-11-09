@@ -1,6 +1,22 @@
 import { getBatchGroupNames } from './ai.js';
-import { getRandomColor } from './helpers.js';
 import { loadStoredContent } from './storage.js';
+
+const CATEGORY_TO_CHROME_COLOR = {
+    'Entertainment': 'red',
+    'Shopping': 'purple',
+    'Social': 'pink',
+    'Food': 'yellow',
+    'Productivity': 'blue',
+    'Music': 'green',
+    'Travel': 'cyan'
+};
+
+/**
+ * Get the Chrome tab group color for a category
+ */
+function getChromeColorForCategory(categoryName) {
+    return CATEGORY_TO_CHROME_COLOR[categoryName] || 'grey';
+}
 
 /**
  * Core function to group all current tabs based on smart logic.
@@ -50,7 +66,7 @@ export async function groupAllTabs() {
                 groupId = await chrome.tabs.group({ tabIds: [tabIds[0]] }); 
                 await chrome.tabGroups.update(groupId, {
                     title: groupName,
-                    color: getRandomColor()
+                    color: getChromeColorForCategory(groupName)
                 });
             }
 

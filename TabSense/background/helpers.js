@@ -3,10 +3,10 @@
  */
 
 // Generate a random color for the tab group
-export function getRandomColor() {
-  const colors = ["blue", "red", "yellow", "green", "pink", "purple", "cyan", "orange"];
-  return colors[Math.floor(Math.random() * colors.length)];
-}
+//export function getRandomColor() {
+  //const colors = ["blue", "red", "yellow", "green", "pink", "purple", "cyan", "orange"];
+  //return colors[Math.floor(Math.random() * colors.length)];
+//}
 
 // Convert milliseconds to a readable format (Hh Mmin)
 export function formatTime(ms) {
