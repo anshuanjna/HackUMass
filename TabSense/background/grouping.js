@@ -1,38 +1,44 @@
-import { getGroupName } from './ai.js';
+import { getBatchGroupNames } from './ai.js';
 import { getRandomColor } from './helpers.js';
 import { loadStoredContent } from './storage.js';
-
-// --- REMOVED THE SLEEP FUNCTION (No longer needed) ---
 
 /**
  * Core function to group all current tabs based on smart logic.
  */
 export async function groupAllTabs() {
-    // FIX APPLIED: Use the correct wildcard pattern for HTTP/HTTPS URLs
     const allTabs = await chrome.tabs.query({ url: ['*://*/*'] }); 
     
+    // Use loadStoredContent to get text for tabs
     const tabsWithContent = await loadStoredContent(allTabs);
+
+    const tabsToGroup = [];
+    const tabsToSkip = [];
+
+    // Filter out tabs we can't or shouldn't group
+    for(const tab of tabsWithContent) {
+        if (tab.pinned || !tab.url || !tab.url.startsWith('http')) {
+            tabsToSkip.push(tab);
+        } else {
+            tabsToGroup.push(tab);
+        }
+    }
+
+    // 1. Get *all* categories in one go
+    const categories = await getBatchGroupNames(tabsToGroup);
+
+    // 2. Build the groups map
     const groups = new Map(); // Map<groupName, tabIds[]>
-
-    // 1. Group tabs based on the AI/Smart logic
-    for (const tabData of tabsWithContent) {
-        
-        // First, skip tabs we don't care about
-        if (tabData.pinned || !tabData.url || tabData.url.startsWith('chrome://')) continue;
-
-        // --- REMOVED THE AWAIT SLEEP() LINE ---
-        // Groq is fast enough that we don't need a delay
-        
-        // Await the asynchronous getGroupName function
-        const groupName = await getGroupName(tabData, tabData.text);
+    for (let i = 0; i < tabsToGroup.length; i++) {
+        const tab = tabsToGroup[i];
+        const groupName = categories[i]; // Get the category from the batch list
         
         if (!groups.has(groupName)) {
             groups.set(groupName, []);
         }
-        groups.get(groupName).push(tabData.id);
+        groups.get(groupName).push(tab.id);
     }
 
-    // 2. Create/Update Chrome Tab Groups
+    // 3. Create/Update Chrome Tab Groups
     for (const [groupName, tabIds] of groups.entries()) {
         if (tabIds.length > 1) { 
             const existingGroups = await chrome.tabGroups.query({ title: groupName });

@@ -1,11 +1,15 @@
+// --- NO API KEY OR IMPORTS ---
+const CHAT_URL = "http://localhost:3000/chat";
+
 document.addEventListener("DOMContentLoaded", () => {
   const tabGroupsContainer = document.getElementById("tab-groups");
   const searchBox = document.getElementById("searchBox");
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
+  const settingsBtn = document.getElementById("settings-btn");
+  
+  let chatHistory = []; 
 
-
-  // Category → CSS class + emoji
   const categoryStyles = {
     "Entertainment": { class: "entertainment", icon: "🎥" },
     "Shopping": { class: "shopping", icon: "🛍️" },
@@ -13,59 +17,140 @@ document.addEventListener("DOMContentLoaded", () => {
     "Food": { class: "food", icon: "🍔" },
     "Productivity": { class: "productivity", icon: "📝" },
     "Music": { class: "music", icon: "🎵" },
-    "Travel": { class: "travel", icon: "✈️" }
+    "Travel": { class: "travel", icon: "✈️" },
+    "Misc": { class: "productivity", icon: "📎" }
   };
 
-  // Mock data (replace with background.js later)
-  const tabData = {
-    "Entertainment": ["YouTube - Trailer", "Netflix - Stranger Things"],
-    "Shopping": ["Amazon - Headphones", "Etsy - Handmade Art"],
-    "Social": ["Instagram - Feed", "Twitter - Notifications"],
-    "Food": ["UberEats - Pizza", "Yelp - Restaurants Nearby"],
-    "Productivity": ["Google Docs - Report", "Notion - Task Board"],
-    "Music": ["Spotify - Lofi Playlist", "SoundCloud - Remix"],
-    "Travel": ["Airbnb - NYC Stay", "Skyscanner - Flight Deals"]
-  };
+  // --- 1. RENDER THE REAL TABS ---
+  async function renderRealTabs(query = "") {
+    tabGroupsContainer.querySelectorAll('.chat-message').forEach(el => el.remove());
+    tabGroupsContainer.querySelectorAll('.tab-group').forEach(el => el.remove());
 
-  function renderTabs(data) {
-    tabGroupsContainer.innerHTML = "";
-    for (const [group, tabs] of Object.entries(data)) {
-      const { class: theme, icon } = categoryStyles[group] || {};
-      const section = document.createElement("section");
-      section.classList.add("tab-group", theme);
-      section.innerHTML = `<h2>${icon || ""} ${group}</h2>`;
-      tabs.forEach(tab => {
-        const div = document.createElement("div");
-        div.classList.add("tab-item");
-        div.innerHTML = `<span>${tab}</span><button class="close-btn">×</button>`;
-        section.appendChild(div);
-      });
-      tabGroupsContainer.appendChild(section);
+    const allTabs = await chrome.tabs.query({});
+    const tabsByGroupId = {};
+    for (const tab of allTabs) {
+      if (tab.groupId === chrome.tabs.TAB_ID_NONE) continue;
+      if (!tabsByGroupId[tab.groupId]) {
+        tabsByGroupId[tab.groupId] = [];
+      }
+      tabsByGroupId[tab.groupId].push(tab);
+    }
+
+    for (const groupId in tabsByGroupId) {
+      const tabs = tabsByGroupId[groupId];
+      try {
+        const groupInfo = await chrome.tabGroups.get(parseInt(groupId));
+        const groupName = groupInfo.title || "Misc";
+
+        const queryLower = query.toLowerCase();
+        const matchingTabs = tabs.filter(t => 
+          t.title.toLowerCase().includes(queryLower) || 
+          t.url.toLowerCase().includes(queryLower)
+        );
+
+        if (matchingTabs.length === 0 && query.length > 0) continue; 
+
+        const { class: theme, icon } = categoryStyles[groupName] || categoryStyles["Misc"];
+        const section = document.createElement("section");
+        section.classList.add("tab-group", theme);
+
+        let tabItemsHTML = "";
+        for (const tab of matchingTabs) {
+          tabItemsHTML += `
+            <div class="tab-item" data-tab-id="${tab.id}" title="${tab.title}">
+              <img src="${tab.favIconUrl || 'icon.png'}" class="favicon" alt="">
+              <span>${tab.title.slice(0, 35)}...</span>
+              <button class="close-btn" data-tab-id="${tab.id}">×</button>
+            </div>
+          `;
+        }
+        
+        if(tabItemsHTML.length > 0) {
+            section.innerHTML = `<h2>${icon || ""} ${groupName}</h2>${tabItemsHTML}`;
+            tabGroupsContainer.appendChild(section);
+        }
+      } catch (e) {
+        console.warn("Couldn't render a tab group (it might have been deleted):", e);
+      }
     }
   }
 
-  renderTabs(tabData);
+  // --- 2. CHATBOT FUNCTIONALITY ---
+  
+  function addChatMessage(role, text) {
+    const div = document.createElement("div");
+    div.classList.add("chat-message", `${role}-message`);
+    div.textContent = text;
+    tabGroupsContainer.prepend(div); 
+  }
 
-  // Search filter
-  searchBox.addEventListener("input", e => {
-    const query = e.target.value.toLowerCase();
-    const filtered = {};
-    for (const [group, tabs] of Object.entries(tabData)) {
-      const matches = tabs.filter(t => t.toLowerCase().includes(query));
-      if (matches.length) filtered[group] = matches;
+  async function handleSendChat() {
+    const userMessage = chatInput.value.trim();
+    if (!userMessage) return;
+
+    chatInput.value = ""; 
+    addChatMessage("user", userMessage);
+    chatHistory.push({ role: "user", content: userMessage });
+
+    try {
+      const response = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: chatHistory })
+      });
+
+      const data = await response.json();
+
+      if (data.response) {
+        chatHistory.push(data.response);
+        addChatMessage("assistant", data.response.content);
+      } else {
+        addChatMessage("assistant", "Sorry, I had an error.");
+      }
+
+    } catch (err) {
+      console.error("❌ Error calling local server (Chat):", err);
+      addChatMessage("assistant", "Sorry, I couldn't connect to the server.");
     }
-    renderTabs(filtered);
+  }
+
+  // --- 3. EVENT LISTENERS ---
+  renderRealTabs();
+  searchBox.addEventListener("input", (e) => {
+    renderRealTabs(e.target.value);
+  });
+  
+  sendBtn.addEventListener("click", handleSendChat);
+  chatInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleSendChat();
   });
 
-  // optional chatbot
-  sendBtn.addEventListener("click", () => {
-    const msg = chatInput.value.trim();
-    if (!msg) return;
-    alert(`Chatbot: “Got it — ${msg}”`);
-    chatInput.value = "";
+  tabGroupsContainer.addEventListener("click", (e) => {
+    const tabItem = e.target.closest('.tab-item');
+    const closeBtn = e.target.closest('.close-btn');
+    if (closeBtn) {
+      const tabId = parseInt(closeBtn.dataset.tabId);
+      chrome.tabs.remove(tabId);
+      closeBtn.parentElement.remove();
+    } else if (tabItem) {
+      const tabId = parseInt(tabItem.dataset.tabId);
+      chrome.tabs.get(tabId, (tab) => {
+        chrome.tabs.update(tabId, { active: true });
+        chrome.windows.update(tab.windowId, { focused: true });
+      });
+    }
+  });
+
+  // This button is now your "Group Tabs" button
+  settingsBtn.title = "Group All Tabs";
+  settingsBtn.textContent = "🌀"; // Re-group icon
+  settingsBtn.addEventListener("click", () => {
+    settingsBtn.textContent = "..."; // Show loading
+    // Send message to background to run the batch grouping
+    chrome.runtime.sendMessage({ action: "GROUP_TABS" }, (response) => {
+      console.log(response.status);
+      renderRealTabs(); // Re-render the tabs in the popup
+      settingsBtn.textContent = "🌀"; // Reset icon
+    });
   });
 });
-
-  document.getElementById("settings-btn").addEventListener("click", () => {
-    chrome.runtime.openOptionsPage();
-  });

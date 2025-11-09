@@ -1,35 +1,27 @@
-// AI logic file for categorizing tabs via your local Gemini server
-const SERVER_URL = "http://localhost:3000/categorize";
+// AI logic file for categorizing tabs via your local server
+const BATCH_SERVER_URL = "http://localhost:3000/batchCategorize";
 
 /**
- * Get a smart group name for a tab by calling the Gemini server.
- * @param {object} tabData - Tab info (title, url, etc.)
- * @param {string} text - Extracted text content
- * @returns {Promise<string>} - Group name
+ * Get group names for a whole list of tabs in a single API call.
+ * @param {Array<object>} tabs - An array of tab objects (with title, url, text)
+ * @returns {Promise<Array<string>>} - A list of category names
  */
-export async function getGroupName(tabData, text = "") {
+export async function getBatchGroupNames(tabs) {
   try {
-    const response = await fetch(SERVER_URL, {
+    const response = await fetch(BATCH_SERVER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: tabData.title || "",
-        url: tabData.url || "",
-        text: text || ""
-      })
+      body: JSON.stringify({ tabs: tabs }) // Send all tabs to the server
     });
 
-    const data = await response.json();
+    const data = await response.json(); // Expects { "categories": [...] }
 
-    if (data.category) {
-      console.log(`🔮 Groq grouped "${tabData.title}" → ${data.category}`);
-      return data.category;
-    } else {
-      console.warn("⚠️ No category returned, defaulting to Misc");
-      return "Misc";
-    }
+    // Re-order the categories to match the original tab list
+    const categoryMap = new Map(data.categories.map(c => [c.id, c.category]));
+    return tabs.map((tab, i) => categoryMap.get(i) || "Misc");
+
   } catch (err) {
-    console.error("❌ Error calling Groq server:", err);
-    return "Misc";
+    console.error("❌ Error calling local server (Batch):", err);
+    return tabs.map(t => "Misc");
   }
 }

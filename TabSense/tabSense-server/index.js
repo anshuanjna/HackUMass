@@ -1,102 +1,142 @@
 import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
-import cors from "cors"; // <-- 1. IMPORT IT HERE
+import cors from "cors"; // <-- 1. IMPORTED CORSS
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(cors()); // <-- 2. USE IT HERE (This allows all origins)
+app.use(cors()); // <-- 2. USING CORS (This fixes 'Failed to fetch')
 
-// Load the Groq key from your .env file
-if (!process.env.GROQ_API_KEY) {
-  console.error("❌ GROQ_API_KEY not found in environment variables.");
+// Load the Gemini key from your .env file
+if (!process.env.GEMINI_API_KEY) {
+  console.error("❌ GEMINI_API_KEY not found in environment variables.");
   process.exit(1);
 }
 
-// --- ROUTES ---
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
-// ✅ Health check route
+// --- ROUTES ---
 app.get("/", (req, res) => {
-  res.send("✅ TabSense Groq server is running!");
+  res.send("✅ TabSense Gemini server is running!");
 });
 
-// ✅ Categorization endpoint
-app.post("/categorize", async (req, res) => {
-  const { title = "", url = "", text = "" } = req.body;
+// --- 3. NEW BATCH ENDPOINT (Fixes rate limit) ---
+app.post("/batchCategorize", async (req, res) => {
+  const { tabs } = req.body; // Expects an array of tabs
 
-  // This is your prompt, which is perfect
+  const tabDataForAI = tabs.map((tab, i) => ({
+    id: i,
+    title: tab.title || "",
+    url: tab.url || "",
+    text: (tab.text || "").slice(0, 500)
+  }));
+
   const prompt = `
-    You are a tab categorizer. Your ONLY job is to assign a single category
-    from the list below. Do not make up your own categories.
+    You are an expert tab categorizer. Your goal is to group tabs by the user's *intent*.
+    For the list of tabs below, return a valid JSON array where each object has an "id" and a "category".
+    Your response MUST be ONLY the JSON array.
 
-    CATEGORIES:
-    - Entertainment
-    - Shopping
-    - Social
-    - Food
-    - Productivity
-    - Music
-    - Travel
-    - Misc
-
-    Respond with ONLY one category name from the list.
-    If nothing fits, respond "Misc".
-
+    CATEGORIES BY INTENT:
+    - *Entertainment*: (e.g., Netflix, funny Reddit threads, youtube.com, amazon prime, hulu, disney+ , HBO Max, News )
+    - *Shopping*: (e.g., Amazon, product pages, Sephora, Ulta, Walmart , Target , Macy's)
+    - *Social*: (e.g., instagram.com, facebook.com, web.whatsapp.com, TikTok, Discord, LinkedIn, X , Quora)
+    - *Productivity*: (e.g., Google Docs, GitHub, programming Reddit threads, Slack , Teams,meet , zoom)
+    - *Food*: (e.g., UberEats, recipes)
+    - *Music*: (e.g., Spotify, SoundCloud, Apple music, Shazam, Amazon Music )
+    - *Travel*: (e.g., Airbnb, Google Flights, hotels, places to visit, Tripadvisor, Booking.com, Google maps, KAYAK)
+    - *Misc*: If nothing else fits.
+    EXAMPLE RESPONSE:
+    [
+      { "id": 0, "category": "Productivity" },
+      { "id": 1, "category": "Social" }
+    ]
     ---
-    Title: ${title}
-    URL: ${url}
-    Content: ${text.slice(0, 500)}
+    TAB LIST TO CATEGORIZE:
+    ${JSON.stringify(tabDataForAI)}
     ---
-
-    CATEGORY:
+    JSON RESPONSE:
     `;
 
-  console.log("🧠 PROMPT SENT TO GROQ:", prompt.slice(0, 250), "...");
+  console.log("🧠 PROMPT SENT TO GEMINI (Batch)...");
 
   try {
-    // --- Send request to Groq ---
-    const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions", // Groq's URL
-      {
+    const response = await fetch(GEMINI_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.GROQ_API_KEY}` // Groq auth header
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // Groq uses the chat-style 'messages' format
-          "messages": [
-            {
-              "role": "user",
-              "content": prompt
-            }
-          ],
-          // This is the new, correct model you confirmed
-          "model": "llama-3.1-8b-instant" 
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
         }),
       }
     );
-
+    
     const data = await response.json();
+    console.log("📥 GEMINI RAW RESPONSE (Batch):", JSON.stringify(data, null, 2));
 
-    // --- Log raw response for debugging ---
-    console.log("📥 GROQ RAW RESPONSE:", JSON.stringify(data, null, 2));
+    const aiResponseText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "[]";
+    const jsonText = aiResponseText.replace(/^```json\n/, '').replace(/\n```$/, '');
+    const categories = JSON.parse(jsonText);
 
-    // --- Parse Groq's response format ---
-    const category =
-      data?.choices?.[0]?.message?.content?.trim() || "Misc";
-
-    res.json({ category });
+    res.json({ categories });
   } catch (error) {
-    console.error("❌ Error contacting Groq:", error);
-    res.status(500).json({ error: "Groq API request failed" });
+    console.error("❌ Error contacting Gemini (Batch):", error);
+    res.status(500).json({ error: "Gemini API request failed" });
   }
 });
 
-// --- Start server ---
-const PORT = 3000;
+
+// --- Chatbot Endpoint ---
+function buildGeminiHistory(chatHistory) {
+  const contents = [];
+  contents.push({
+    role: "user",
+    parts: [{ text: "You are TabSense, a helpful AI assistant. Be concise and friendly." }]
+  });
+  contents.push({
+    role: "model",
+    parts: [{ text: "Okay, I am TabSense. How can I help?" }]
+  });
+  chatHistory.forEach(item => {
+    const role = (item.role === 'assistant') ? 'model' : 'user';
+    contents.push({
+      role: role,
+      parts: [{ text: item.content }]
+    });
+  });
+  return contents;
+}
+
+app.post("/chat", async (req, res) => {
+  const { messages } = req.body;
+  if (!messages) {
+    return res.status(400).json({ error: "No messages provided" });
+  }
+  console.log("🧠 PROMPT SENT TO GEMINI (Chat)...");
+  try {
+    const response = await fetch(GEMINI_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          "contents": buildGeminiHistory(messages)
+        })
+      }
+    );
+    const data = await response.json();
+    console.log("📥 GEMINI RAW RESPONSE (Chat):", JSON.stringify(data, null, 2));
+    const aiResponse = data?.candidates?.[0]?.content;
+    res.json({ response: {
+        role: "assistant",
+        content: aiResponse?.parts?.[0]?.text || "Sorry, I had an error."
+    }});
+  } catch (error) {
+    console.error("❌ Error contacting Gemini (Chat):", error);
+    res.status(500).json({ error: "Gemini API request failed" });
+  }
+});
+
+// Use the port the host gives us (like Render) or 3000 for local
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 TabSense Groq server running on http://localhost:${PORT}`);
+  console.log(`🚀 TabSense Gemini server running on http://localhost:${PORT}`);
 });
